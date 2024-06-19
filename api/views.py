@@ -77,10 +77,21 @@ def random(request):
 @api_view(['GET'])
 def display_user_note(request, username):
     user = get_object_or_404(User, username=username)
-    print(user)
     notes = Note.objects.filter(user=user)
     serializer = NoteSerializer(notes, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+def Leaderboard(request):
+    notes_queryset = Note.objects.all()
+    commands_queryset = Command.objects.all()
+
+    note_serializer = NoteSerializer(notes_queryset, many=True)
+    command_serializer = CommandSerializer(commands_queryset, many=True)
+
+    return Response({'notes': note_serializer.data, 'commands': command_serializer.data})
+
 
 # comment views 
 def update_command_count(note_id):
@@ -133,6 +144,14 @@ def post_command(request, note_id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+
+
+@api_view(['GET'])
+def display_user_command(request, username):
+    user = get_object_or_404(User, username=username)
+    commands = Command.objects.filter(user=user)
+    serializer = CommandSerializer(commands, many=True)
+    return Response(serializer.data)
 
 
 

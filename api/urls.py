@@ -8,9 +8,12 @@ urlpatterns = [
     path('postnote', views.postnote, name='postnote'),
     path('display_user_note/<str:username>', views.display_user_note, name='display_user_note'),
     path('like_or_dislike/<str:username>', views.Like_or_Dislike, name='Like_or_Dislike'),
+
+     path('leaderboard', views.Leaderboard, name='leaderboard'),
     
     path('display_command/<int:note_id>',views.display_command, name='display_command'),
     path('post_command/<int:note_id>', views.post_command, name='post_command'),
+    path('display_user_command/<str:username>', views.display_user_command, name='display_user_command'),
     
     path('login', views.login, name='login'),
     path('register', views.register, name='register'),
