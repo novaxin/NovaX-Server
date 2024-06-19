@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from .models import Note,Command
-from .serializers import NoteSerializer,CommandSerializer
+from .models import Note,Command,LikeOrDislike
+from .serializers import NoteSerializer,CommandSerializer,LikeOrDislikeSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -12,6 +12,8 @@ from django.contrib.auth.models import User
 
 
 from django.shortcuts import get_object_or_404
+
+
 
 @api_view(['POST'])
 def postnote(request):
@@ -29,6 +31,37 @@ def postnote(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+def update_like_or_dislike(note_id):
+    note = get_object_or_404(Note, id=note_id)
+    like = LikeOrDislike.objects.filter(note=note_id,type='like').count()
+    dislike = LikeOrDislike.objects.filter(note=note_id,type='dislike').count()
+    note.likes = like
+    note.dislikes = dislike
+    note.save()
+    print('dislike cunt',dislike,'like count',like)
+
+@api_view(['POST'])
+def Like_or_Dislike(request, username):
+    user = get_object_or_404(User, username=username)
+    data = request.data
+    note_id = data.get('note_id')
+    note = get_object_or_404(Note, id=note_id)
+    like_or_dislike = data.get('like_or_dislike')
+    if not note_id or not like_or_dislike:
+        return Response({'error': 'Note ID and like_or_dislike are required.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    like_dislike_instance, created = LikeOrDislike.objects.update_or_create(
+        user=user,
+        note_id=note_id,
+        defaults={'type': like_or_dislike}
+    )
+    update_like_or_dislike(note_id)
+    serializer = LikeOrDislikeSerializer(like_dislike_instance)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
 @api_view(['GET'])
 def display(request):
     notes = Note.objects.order_by('-created')
@@ -44,12 +77,10 @@ def random(request):
 @api_view(['GET'])
 def display_user_note(request, username):
     user = get_object_or_404(User, username=username)
+    print(user)
     notes = Note.objects.filter(user=user)
     serializer = NoteSerializer(notes, many=True)
     return Response(serializer.data)
-
-
-
 
 # comment views 
 def update_command_count(note_id):
@@ -79,7 +110,7 @@ def display_command(request, note_id):
 
 @api_view(['POST'])
 def post_command(request, note_id):
-    command = request.data.get('command', '')
+    command = request.data.get('commant', '')
     username = request.data.get('user', '')
     user = get_object_or_404(User, username=username)
 
