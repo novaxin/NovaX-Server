@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from .models import Note,Command,LikeOrDislike
-from .serializers import NoteSerializer,CommandSerializer,LikeOrDislikeSerializer
+from .models import Note, Command, LikeOrDislike
+from .serializers import NoteSerializer, CommandSerializer, LikeOrDislikeSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -12,7 +12,6 @@ from django.contrib.auth.models import User
 
 
 from django.shortcuts import get_object_or_404
-
 
 
 @api_view(['POST'])
@@ -33,46 +32,65 @@ def postnote(request):
 
 def update_like_or_dislike(note_id):
     note = get_object_or_404(Note, id=note_id)
-    like = LikeOrDislike.objects.filter(note=note_id,type='like').count()
-    dislike = LikeOrDislike.objects.filter(note=note_id,type='dislike').count()
+    like = LikeOrDislike.objects.filter(note=note_id, type='like').count()
+    dislike = LikeOrDislike.objects.filter(
+        note=note_id, type='dislike').count()
     note.likes = like
     note.dislikes = dislike
     note.save()
-    print('dislike cunt',dislike,'like count',like)
+    print('dislike cunt', dislike, 'like count', like)
+
 
 @api_view(['POST'])
 def Like_or_Dislike(request, username):
     user = get_object_or_404(User, username=username)
     data = request.data
     note_id = data.get('note_id')
-    note = get_object_or_404(Note, id=note_id)
     like_or_dislike = data.get('like_or_dislike')
+
     if not note_id or not like_or_dislike:
         return Response({'error': 'Note ID and like_or_dislike are required.'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    like_dislike_instance, created = LikeOrDislike.objects.update_or_create(
-        user=user,
-        note_id=note_id,
-        defaults={'type': like_or_dislike}
-    )
-    update_like_or_dislike(note_id)
-    serializer = LikeOrDislikeSerializer(like_dislike_instance)
-    return Response(serializer.data, status=status.HTTP_200_OK)
 
+    toggle_status = data['toggle_status'] # Default to False if not provided
+    print(toggle_status)
+    try:
+        if toggle_status:
+            note = get_object_or_404(Note, id=note_id)
+            like_dislike_instance, created = LikeOrDislike.objects.update_or_create(
+                user=user,
+                note=note,
+                defaults={'type': like_or_dislike}
+            )
+        else:
+            LikeOrDislike.objects.filter(user=user, note_id=note_id).delete()
 
+        # Update likes and dislikes counts
+        update_like_or_dislike(note_id)
+
+        # Serialize the instance if it exists
+        if toggle_status:
+            serializer = LikeOrDislikeSerializer(like_dislike_instance)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'Like or dislike deleted successfully.'}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
 def display(request):
     notes = Note.objects.order_by('-created')
-    serializer = NoteSerializer(notes,many=True)
+    serializer = NoteSerializer(notes, many=True)
     return Response(serializer.data)
+
 
 @api_view(['GET'])
 def random(request):
     notes = Note.objects.order_by('?')
     serializer = NoteSerializer(notes, many=True)
     return Response(serializer.data)
+
 
 @api_view(['GET'])
 def display_user_note(request, username):
@@ -93,14 +111,13 @@ def Leaderboard(request):
     return Response({'notes': note_serializer.data, 'commands': command_serializer.data})
 
 
-# comment views 
+# comment views
 def update_command_count(note_id):
     note = get_object_or_404(Note, id=note_id)
     count_commands = Command.objects.filter(note_id=note_id).count()
     note.commend_count = count_commands
     note.save()
     print("saved")
-
 
 
 @api_view(['GET'])
@@ -144,17 +161,12 @@ def post_command(request, note_id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
 @api_view(['GET'])
 def display_user_command(request, username):
     user = get_object_or_404(User, username=username)
     commands = Command.objects.filter(user=user)
     serializer = CommandSerializer(commands, many=True)
     return Response(serializer.data)
-
-
-
 
 
 @api_view(['POST'])
@@ -180,10 +192,10 @@ def register(request):
 
     if not username or not password:
         return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     if User.objects.filter(username=username).exists():
         return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     user = User.objects.create_user(username=username, password=password)
     return Response({'message': 'User registered successfully'}, status=status.HTTP_201_CREATED)
 

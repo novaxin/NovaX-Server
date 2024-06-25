@@ -31,7 +31,7 @@ class LikeOrDislike(models.Model):
         verbose_name_plural = "Likes or Dislikes"
 
     def __str__(self):
-        return f"{self.user.username} {self.get_type_display()}d {self.note.note[:50]}"
+        return f"{self.id}--{self.user.username} {self.get_type_display()}d {self.note.note[:50]}"
     
 
 class Command(models.Model):
